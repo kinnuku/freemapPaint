@@ -227,6 +227,7 @@ async function render(){
 
     const prevLabelMarkers = { ...labelMarkers };
     labelMarkers = {};
+    labelLayer.clearLayers(); // ★ この1行を追加
 
     const selected = getSelected();
     if(selected.length === 0) return;
@@ -285,12 +286,19 @@ async function render(){
 
                         if(prevLabelMarkers[key]){
                             labelMarkers[key] = prevLabelMarkers[key];
-                            labelNameCache[key] = safeName;  // ← 追加
+                            labelNameCache[key] = safeName;
+                            // ★ 保存済み座標があれば明示的に位置を復元してから再追加
+                            if(labelPos[key]){
+                                prevLabelMarkers[key].setLatLng(labelPos[key]);
+                            }
+                            prevLabelMarkers[key].addTo(labelLayer);
                         } else {
                             const cityPos = cityHallData[key];
-                            const center = cityPos
-                                ? L.latLng(cityPos.lat, cityPos.lng)
-                                : (labelPos[key] || layer.getBounds().getCenter());
+                            const center = labelPos[key]          // ★ 移動済み座標を最優先
+                                ? L.latLng(labelPos[key].lat, labelPos[key].lng)
+                                : cityPos
+                                    ? L.latLng(cityPos.lat, cityPos.lng)
+                                    : layer.getBounds().getCenter();
                             addLabelMarker(key, safeName, center);
                         }
                     }
@@ -323,13 +331,6 @@ async function render(){
 
         } catch(err){ console.error(err); }
     }
-
-    // 今回描画されなかったラベルマーカーを削除
-    Object.keys(prevLabelMarkers).forEach(key => {
-        if(!labelMarkers[key]){
-            labelLayer.removeLayer(prevLabelMarkers[key]);
-        }
-    });
 
     polygonLayer.bringToBack();
     circleLayer.bringToFront();
