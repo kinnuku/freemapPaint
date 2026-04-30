@@ -107,6 +107,7 @@ let csvEditMode  = false;
 let ellipseMode  = false; /* ★ */
 
 let labelMarkers   = {};
+let labelNameCache = {};
 let starMarkers    = new Map();
 let leafletCircles = new Map();
 let textMarkers    = new Map();
@@ -221,10 +222,11 @@ async function loadCityHallData(){
    ===================================================== */
 async function render(){
     polygonLayer.clearLayers();
-    labelLayer.clearLayers();
-    labelMarkers = {};
     used.clear();
     renderedKeys.clear();
+
+    const prevLabelMarkers = { ...labelMarkers };
+    labelMarkers = {};
 
     const selected = getSelected();
     if(selected.length === 0) return;
@@ -278,17 +280,19 @@ async function render(){
                             () => { delete colorData[key]; saveColors(); layer.setStyle({fillColor:"#fff"}); }
                         );
                     });
-
                     if(labelVisible && !used.has(key)){
                         used.add(key);
 
-                        const cityPos = cityHallData[key];
-
-                        const center = cityPos
-                            ? L.latLng(cityPos.lat, cityPos.lng)
-                            : (labelPos[key] || layer.getBounds().getCenter());
-
-                        addLabelMarker(key, safeName, center);
+                        if(prevLabelMarkers[key]){
+                            labelMarkers[key] = prevLabelMarkers[key];
+                            labelNameCache[key] = safeName;  // ← 追加
+                        } else {
+                            const cityPos = cityHallData[key];
+                            const center = cityPos
+                                ? L.latLng(cityPos.lat, cityPos.lng)
+                                : (labelPos[key] || layer.getBounds().getCenter());
+                            addLabelMarker(key, safeName, center);
+                        }
                     }
                 }
             }).addTo(polygonLayer);
@@ -320,6 +324,13 @@ async function render(){
         } catch(err){ console.error(err); }
     }
 
+    // 今回描画されなかったラベルマーカーを削除
+    Object.keys(prevLabelMarkers).forEach(key => {
+        if(!labelMarkers[key]){
+            labelLayer.removeLayer(prevLabelMarkers[key]);
+        }
+    });
+
     polygonLayer.bringToBack();
     circleLayer.bringToFront();
     starLayer.bringToFront();
@@ -341,6 +352,7 @@ function makeLabelIcon(key, safeName){
 }
 
 function addLabelMarker(key, safeName, center){
+    labelNameCache[key] = safeName;
     const marker = L.marker(center, {
         pane: "labelPane",
         draggable:true,
@@ -867,12 +879,30 @@ function changeAllLabelSize(){
 
     const prevSizes = {};
     renderedKeys.forEach(k => { prevSizes[k] = sizeData[k] || 12; });
-    renderedKeys.forEach(k => { sizeData[k] = next; });
-    saveSizes(); render();
+
+    renderedKeys.forEach(k => {
+        sizeData[k] = next;
+        if(labelMarkers[k]){
+            labelMarkers[k].setIcon(makeLabelIcon(k, labelNameCache[k] || ""));
+        }
+    });
+    saveSizes();
 
     pushHistory(`文字サイズ一括`,
-        () => { renderedKeys.forEach(k => { sizeData[k]=prevSizes[k]; }); saveSizes(); render(); },
-        () => { renderedKeys.forEach(k => { sizeData[k]=next; }); saveSizes(); render(); }
+        () => {
+            renderedKeys.forEach(k => {
+                sizeData[k] = prevSizes[k];
+                if(labelMarkers[k]) labelMarkers[k].setIcon(makeLabelIcon(k, labelNameCache[k] || ""));
+            });
+            saveSizes();
+        },
+        () => {
+            renderedKeys.forEach(k => {
+                sizeData[k] = next;
+                if(labelMarkers[k]) labelMarkers[k].setIcon(makeLabelIcon(k, labelNameCache[k] || ""));
+            });
+            saveSizes();
+        }
     );
 }
 
@@ -889,6 +919,7 @@ function toggleLabels(){
     }else{
         labelLayer.clearLayers();
         labelMarkers = {};
+        used.clear();
     }
 
     document.getElementById("labelToggleBtn").textContent =
