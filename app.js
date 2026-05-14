@@ -1175,6 +1175,9 @@ function deselectEllipse(){
     const rec = ellipseMarkers.get(selectedEllipse);
     if(rec) rec.handleLayer.clearLayers();
     selectedEllipse = null;
+    // ★情報ボックスを隠す
+    const infoBox = document.getElementById('ellipseInfoBox');
+    if(infoBox) infoBox.style.display = 'none';
 }
 
 /* ----- 楕円の点列計算 ----- */
@@ -1206,6 +1209,51 @@ function ellipsePoint(lat, lng, rxKm, ryKm, rotDeg, theta){
     const dLat   = (yRot / EARTH_R) * (180 / Math.PI);
     const dLng   = (xRot / EARTH_R) * (180 / Math.PI) / Math.cos(latRad);
     return L.latLng(lat + dLat, lng + dLng);
+}
+
+/* ----- 楕円の4点座標を画面表示 ----- */
+function _displayEllipseCoordinates(obj){
+    const center = `中心: (${obj.lat.toFixed(6)}, ${obj.lng.toFixed(6)})`;
+    const pt_rx_plus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, 0);
+    const pt_rx_minus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, Math.PI);
+    const pt_ry_plus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, Math.PI / 2);
+    const pt_ry_minus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, 3 * Math.PI / 2);
+    
+    // 表示用DIVを取得または作成
+    let infoBox = document.getElementById('ellipseInfoBox');
+    if(!infoBox){
+        infoBox = document.createElement('div');
+        infoBox.id = 'ellipseInfoBox';
+        infoBox.style.cssText = `
+            position: fixed;
+            top: 60px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #0066cc;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            max-width: 320px;
+            word-break: break-all;
+        `;
+        document.body.appendChild(infoBox);
+    }
+    
+    infoBox.innerHTML = `
+        <div style="color: #0066cc; font-weight: bold; margin-bottom: 8px;">楕円の座標情報</div>
+        <div>${center}</div>
+        <div style="color: #d9534f;">右端 (rx+):   (${pt_rx_plus.lat.toFixed(6)}, ${pt_rx_plus.lng.toFixed(6)})</div>
+        <div style="color: #d9534f;">左端 (rx-):   (${pt_rx_minus.lat.toFixed(6)}, ${pt_rx_minus.lng.toFixed(6)})</div>
+        <div style="color: #5cb85c;">上端 (ry+):   (${pt_ry_plus.lat.toFixed(6)}, ${pt_ry_plus.lng.toFixed(6)})</div>
+        <div style="color: #5cb85c;">下端 (ry-):   (${pt_ry_minus.lat.toFixed(6)}, ${pt_ry_minus.lng.toFixed(6)})</div>
+        <div style="color: #999; margin-top: 8px;">長軸=${(obj.rxKm * 2).toFixed(2)}km</div>
+        <div style="color: #999;">短軸=${(obj.ryKm * 2).toFixed(2)}km</div>
+        <div style="color: #999;">回転=${obj.rot.toFixed(1)}°</div>
+    `;
 }
 
 /* ----- 楕円レイヤー追加 ----- */
@@ -1251,6 +1299,9 @@ function addEllipse(obj){
             return;
         }
 
+        /* ★座標表示 */
+        _displayEllipseCoordinates(obj);
+        
         /* ハンドル表示 / 解除 */
         if(selectedEllipse === obj){
             deselectEllipse();
@@ -1288,6 +1339,9 @@ function selectEllipse(obj){
     const rec = ellipseMarkers.get(obj);
     if(!rec) return;
     _buildHandles(obj, rec);
+    // ★情報ボックスを表示
+    const infoBox = document.getElementById('ellipseInfoBox');
+    if(infoBox) infoBox.style.display = 'block';
 }
 
 /* ---- ハンドルアイコン ---- */
@@ -1353,6 +1407,8 @@ function _buildHandles(obj, rec){
             ellipseMarkers.get(obj).poly.setLatLngs(
                 ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot));
             _updateHandlePositions(obj, rec);
+            // ★ドラッグ中に4点座標を表示
+            _displayEllipseCoordinates(obj);
         });
         m.on('dragend', function(){
             map.dragging.enable();
@@ -1391,6 +1447,8 @@ function _buildHandles(obj, rec){
             ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot)
         );
         _updateHandlePositions(obj, rec);
+        // ★ドラッグ中に4点座標を表示
+        _displayEllipseCoordinates(obj);
     });
     rotM.on('dragend', function(){
         map.dragging.enable();
@@ -1420,6 +1478,8 @@ function _buildHandles(obj, rec){
         ellipseMarkers.get(obj).poly.setLatLngs(
             ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot));
         _updateHandlePositions(obj, rec);
+        // ★ドラッグ中に4点座標を表示
+        _displayEllipseCoordinates(obj);
     });
     cM.on('dragend', function(){
         map.dragging.enable();
