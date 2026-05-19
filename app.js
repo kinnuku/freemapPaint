@@ -276,21 +276,31 @@ async function render(){
             // N03_007ごとに最大面積featureを事前集計
             // （1市区町村が数百featureに分割されているため、
             //   最初に来たfeatureの重心でなく最大ポリゴンの重心を使う）
+            // Polygon / MultiPolygon 両対応
             const bestFeatureForKey = {};
             const bestAreaForKey = {};
+            const _ringArea = ring => {
+                let a = 0;
+                for(let i = 0; i < ring.length; i++){
+                    const [x1,y1] = ring[i];
+                    const [x2,y2] = ring[(i+1)%ring.length];
+                    a += x1*y2 - x2*y1;
+                }
+                return Math.abs(a)/2;
+            };
             for(const feat of data.features){
                 const k = feat.properties.N03_007;
                 if(!k) continue;
+                const geom = feat.geometry;
                 let maxA = 0;
-                for(const poly of feat.geometry.coordinates){
-                    const ring = poly[0];
-                    let a = 0;
-                    for(let i = 0; i < ring.length; i++){
-                        const [x1,y1] = ring[i];
-                        const [x2,y2] = ring[(i+1)%ring.length];
-                        a += x1*y2 - x2*y1;
+                if(geom.type === "MultiPolygon"){
+                    // coordinates = [ [[outerRing],[hole],...], ... ]
+                    for(const poly of geom.coordinates){
+                        maxA = Math.max(maxA, _ringArea(poly[0]));
                     }
-                    maxA = Math.max(maxA, Math.abs(a)/2);
+                } else if(geom.type === "Polygon"){
+                    // coordinates = [[outerRing],[hole],...]
+                    maxA = _ringArea(geom.coordinates[0]);
                 }
                 if(maxA > (bestAreaForKey[k] || 0)){
                     bestAreaForKey[k] = maxA;
