@@ -117,6 +117,7 @@ let csvCircleObjects = [];
 
 let cityHallData = {};
 
+
 /* ★ 楕円データ */
 let ellipseData      = JSON.parse(localStorage.getItem("ellipses") || "[]");
 const saveEllipses   = () => localStorage.setItem("ellipses", JSON.stringify(ellipseData));
@@ -182,12 +183,53 @@ function selectAll(flag){
     render();
 }
 
-function getLabelPoint(feature, layer){
-    const gj = layer.toGeoJSON();
-    const pt = turf.pointOnFeature(gj);
+async function loadCityHallData(){
+    try{
+        const res = await fetch("geo/cityhall.json");
+        if(!res.ok) throw new Error("cityhall.json 読み込み失敗");
+        cityHallData = await res.json();
+    }catch(e){
+        console.error(e);
+        cityHallData = {};
+    }
+}
+
+// featureのGeoJSONから重心を計算
+// render()で事前集計した「最大面積feature」を直接受け取る
+function getLabelPoint(feature, key){
+    // featureのgeometryをそのまま使う（既に最大面積featureが選ばれている）
+    // MultiPolygonの場合はさらに最大ポリゴンに絞る
+    let targetGj = feature;
+    if(feature.geometry && feature.geometry.type === "MultiPolygon"){
+        let maxArea = -1, bestCoords = null;
+        for(const coords of feature.geometry.coordinates){
+            const poly = turf.polygon(coords);
+            const area = turf.area(poly);
+            if(area > maxArea){ maxArea = area; bestCoords = coords; }
+        }
+        if(bestCoords) targetGj = turf.polygon(bestCoords);
+    }
+
+    // 重心を計算し、ポリゴン内に収まっているか確認
+    try {
+        const pt = turf.centerOfMass(targetGj);
+        const lng = pt.geometry.coordinates[0];
+        const lat = pt.geometry.coordinates[1];
+        if(turf.booleanPointInPolygon(pt, targetGj)){
+            return { lat, lng };
+        }
+    } catch(e) { /* fall through */ }
+
+    // 重心がポリゴン外 → cityhall.json（市役所座標）にフォールバック
+    if(key && cityHallData[key]){
+        return cityHallData[key];
+    }
+
+    // 最終フォールバック
+    const fallback = turf.pointOnFeature(targetGj);
     return {
-        lat: pt.geometry.coordinates[1],
-        lng: pt.geometry.coordinates[0]
+        lat: fallback.geometry.coordinates[1],
+        lng: fallback.geometry.coordinates[0]
     };
 }
 
@@ -205,17 +247,6 @@ function toggleJapanMap(){
 }
 
 function getName(f){ return f.properties.N03_005 || f.properties.N03_004; }
-
-async function loadCityHallData(){
-    try{
-        const res = await fetch("geo/cityhall.json");
-        if(!res.ok) throw new Error("cityhall.json 読み込み失敗");
-        cityHallData = await res.json();
-    }catch(e){
-        console.error(e);
-        cityHallData = {};
-    }
-}
 
 /* =====================================================
    描画
@@ -240,6 +271,31 @@ async function render(){
                 if(!res.ok) throw new Error(pref + " 読み込み失敗");
                 data = await res.json();
                 geoCache[pref] = data;
+            }
+
+            // N03_007ごとに最大面積featureを事前集計
+            // （1市区町村が数百featureに分割されているため、
+            //   最初に来たfeatureの重心でなく最大ポリゴンの重心を使う）
+            const bestFeatureForKey = {};
+            const bestAreaForKey = {};
+            for(const feat of data.features){
+                const k = feat.properties.N03_007;
+                if(!k) continue;
+                let maxA = 0;
+                for(const poly of feat.geometry.coordinates){
+                    const ring = poly[0];
+                    let a = 0;
+                    for(let i = 0; i < ring.length; i++){
+                        const [x1,y1] = ring[i];
+                        const [x2,y2] = ring[(i+1)%ring.length];
+                        a += x1*y2 - x2*y1;
+                    }
+                    maxA = Math.max(maxA, Math.abs(a)/2);
+                }
+                if(maxA > (bestAreaForKey[k] || 0)){
+                    bestAreaForKey[k] = maxA;
+                    bestFeatureForKey[k] = feat;
+                }
             }
 
             L.geoJSON(data, {
@@ -287,19 +343,16 @@ async function render(){
                         if(prevLabelMarkers[key]){
                             labelMarkers[key] = prevLabelMarkers[key];
                             labelNameCache[key] = safeName;
-                            // ★ 保存済み座標があれば明示的に位置を復元してから再追加
                             if(labelPos[key]){
                                 prevLabelMarkers[key].setLatLng(labelPos[key]);
                             }
                             prevLabelMarkers[key].addTo(labelLayer);
                         } else {
-                            const cityPos = cityHallData[key];
-                            const center = labelPos[key]          // ★ 移動済み座標を最優先
+                            // 手動移動済み座標を最優先、なければ最大featureの重心
+                            const center = labelPos[key]
                                 ? L.latLng(labelPos[key].lat, labelPos[key].lng)
-                                : cityPos
-                                    ? L.latLng(cityPos.lat, cityPos.lng)
-                                    : layer.getBounds().getCenter();
-                            addLabelMarker(key, safeName, center);
+                                : getLabelPoint(bestFeatureForKey[key] || f, key);
+                            addLabelMarker(key, safeName, L.latLng(center.lat, center.lng));
                         }
                     }
                 }
@@ -1556,8 +1609,7 @@ function removeEllipseLayer(obj){
    起動
    ===================================================== */
 (async function(){
-    await loadCityHallData();   // ★ここ追加
-
+    await loadCityHallData();
     createPrefUI({ features: PREF_ORDER.map(p => ({ properties:{ N03_001:p } })) });
 
     setTimeout(() => {
