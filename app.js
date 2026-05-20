@@ -33,6 +33,7 @@ function doRedo(){
 
 function updateUndoStatus(){
     const el = document.getElementById('undoStatus');
+    if(!el) return;
     const u = undoStack.length > 0 ? undoStack[undoStack.length-1].desc : null;
     const r = redoStack.length > 0 ? redoStack[redoStack.length-1].desc : null;
     el.textContent = (u ? `↩ ${u}` : '') + (u && r ? '　' : '') + (r ? `↪ ${r}` : '');
@@ -135,6 +136,38 @@ const saveLabelColors  = () => localStorage.setItem("labelColors",  JSON.stringi
 const saveLabelVisible = () => localStorage.setItem("labelVisible", JSON.stringify(labelVisible));
 
 /* =====================================================
+   モードバッジ表示
+   ===================================================== */
+const MODE_LABELS = {
+    star:    '★ スターモード',
+    circle:  '◎ サークルモード',
+    ellipse: '⬭ 楕円モード',
+    text:    'T  テキストモード',
+    csv:     '✏️ CSV編集モード',
+};
+
+function showModeBadge(mode){
+    const badge = document.getElementById('modeBadge');
+    const text  = document.getElementById('modeBadgeText');
+    if(!badge || !text) return;
+    if(mode){
+        text.textContent = MODE_LABELS[mode] || mode;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function _activeMode(){
+    if(starMode)    return 'star';
+    if(circleMode)  return 'circle';
+    if(ellipseMode) return 'ellipse';
+    if(textMode)    return 'text';
+    if(csvEditMode) return 'csv';
+    return null;
+}
+
+/* =====================================================
    色選択
    ===================================================== */
 function setColor(c){
@@ -143,11 +176,19 @@ function setColor(c){
     document.querySelectorAll('.color-picker-wrap').forEach(p => p.classList.remove('active'));
     const btn = document.querySelector(`[data-color="${c}"]`);
     if(btn) btn.classList.add('active');
+    _updateColorPreview(c);
 }
 function pickColor(color){
     currentColor = color;
     document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.color-picker-wrap').classList.add('active');
+    _updateColorPreview(color);
+}
+function _updateColorPreview(c){
+    const swatch = document.getElementById('colorSwatch');
+    const label  = document.getElementById('colorLabel');
+    if(swatch) swatch.style.background = c;
+    if(label)  label.textContent = c;
 }
 
 /* =====================================================
@@ -162,11 +203,29 @@ const PREF_ORDER = ["北海道","青森県","岩手県","宮城県","秋田県",
 "徳島県","香川県","愛媛県","高知県",
 "福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
 
-function createPrefUI(data){
-    const set = new Set(data.features.map(f => f.properties.N03_001));
+/* 地方の区切り（最初の県名: エリア名） */
+const REGION_LABELS = {
+    "北海道": "北海道",
+    "青森県": "東北",
+    "茨城県": "北関東",
+    "埼玉県": "首都圏",
+    "新潟県": "北信越",
+    "岐阜県": "東海",
+    "滋賀県": "関西",
+    "鳥取県": "中国",
+    "徳島県": "四国",
+    "福岡県": "九州",
+};
+
+function createPrefUI(){
     const container = document.getElementById("prefList");
     PREF_ORDER.forEach(pref => {
-        if(!set.has(pref)) return;
+        if(REGION_LABELS[pref]){
+            const div = document.createElement("div");
+            div.className = "pref-region-label";
+            div.textContent = REGION_LABELS[pref];
+            container.appendChild(div);
+        }
         const label = document.createElement("label");
         const input = document.createElement("input");
         input.type = "checkbox"; input.value = pref; input.onchange = render;
@@ -493,10 +552,11 @@ function toggleStarMode(forceValue=null){
         toggleCircleMode(false);
         toggleTextMode(false);
         toggleCsvEditMode(false);
-        toggleEllipseMode(false); /* ★ */
+        toggleEllipseMode(false);
     }
-    /* starPane は常にクリック可能（円モードでも星をクリックして円を追加するため） */
-    map.getPane("starPane").style.pointerEvents = "auto";
+    /* starPaneは星モードか円モードのときだけ有効にする */
+    map.getPane("starPane").style.pointerEvents = (starMode || circleMode) ? "auto" : "none";
+    showModeBadge(_activeMode());
 }
 
 function setCircleInteractive(flag){
@@ -527,10 +587,13 @@ function toggleCircleMode(forceValue=null){
         document.getElementById("starBtn").classList.remove("active");
         toggleTextMode(false);
         toggleCsvEditMode(false);
-        toggleEllipseMode(false); /* ★ */
+        toggleEllipseMode(false);
     }
     const pane = map.getPane("circlePane");
     pane.style.pointerEvents = circleMode ? "auto" : "none";
+    /* starPaneは円モード中も有効（星クリックで円追加するため） */
+    map.getPane("starPane").style.pointerEvents = (starMode || circleMode) ? "auto" : "none";
+    showModeBadge(_activeMode());
 }
 
 function makeStarIcon(s){
@@ -787,9 +850,11 @@ function toggleTextMode(forceValue=null){
         toggleStarMode(false);
         toggleCircleMode(false);
         toggleCsvEditMode(false);
-        toggleEllipseMode(false); /* ★ */
+        toggleEllipseMode(false);
     }
-    map.getPane("textPane").style.pointerEvents = "auto";
+    /* BUG FIX: textModeがfalseのときはpointerEventsをnoneにする */
+    map.getPane("textPane").style.pointerEvents = textMode ? "auto" : "none";
+    showModeBadge(_activeMode());
 }
 
 /* =====================================================
@@ -806,9 +871,10 @@ function toggleCsvEditMode(forceValue=null){
         toggleStarMode(false);
         toggleCircleMode(false);
         toggleTextMode(false);
-        toggleEllipseMode(false); /* ★ */
+        toggleEllipseMode(false);
     }
     map.getPane("csvPane").style.pointerEvents = csvEditMode ? "auto" : "none";
+    showModeBadge(_activeMode());
 }
 
 function makeTextIcon(t){
@@ -1234,6 +1300,7 @@ function toggleEllipseMode(forceValue = null){
     } else {
         deselectEllipse();
     }
+    showModeBadge(_activeMode());
 }
 
 /* ----- ハンドル解除 ----- */
@@ -1624,12 +1691,14 @@ function removeEllipseLayer(obj){
    ===================================================== */
 (async function(){
     await loadCityHallData();
-    createPrefUI({ features: PREF_ORDER.map(p => ({ properties:{ N03_001:p } })) });
+    createPrefUI();
 
     setTimeout(() => {
         setColor(currentColor);
+        _updateColorPreview(currentColor);
         document.getElementById("labelToggleBtn").textContent =
             labelVisible ? "市区町村名非表示" : "市区町村名表示";
+        showModeBadge(null);
     }, 100);
 
     starData.forEach(s => addStar(s));

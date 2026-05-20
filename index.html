@@ -2,236 +2,245 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-
 <title>白地図ペイント</title>
-
 <meta name="description" content="日本の白地図に色を塗ったり、星や円を配置できる無料ツール。CSV読み込みにも対応し、データ可視化・エリア分析に最適です。ブラウザだけで簡単に使えます。">
 <meta name="robots" content="index, follow">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <meta property="og:title" content="日本地図ペイントツール｜白地図に色塗り・CSV可視化">
 <meta property="og:description" content="日本地図に色塗り・星・円を配置できる無料ツール。CSVデータの可視化にも対応。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kinnuku.github.io/white-map-painter-jp/">
 <meta property="og:image" content="https://illustimage.com/photo/thum/554_2.png?20160706">
-
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="style.css">
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-path-drag@0.0.14/Path.Drag.js"></script>
 <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
 </head>
-
 <body>
 
+<h1 style="display:none;">日本地図に色塗りできる無料ツール（白地図・CSV対応）</h1>
+<div style="display:none;">このツールは、日本の白地図に色を塗ったり、星や円を配置してデータを可視化できる無料の地図ツールです。</div>
+
+<!-- HEADER -->
 <header class="site-header">
-    <h1 style="margin:0;font-size:22px;">
-        白地図ペイント
-    </h1>
+  <h1 style="margin:0;font-size:22px;">白地図ペイント</h1>
+  <span id="undoStatus" style="margin-left:16px;font-size:12px;color:#888;"></span>
 </header>
 
-<h1 style="display:none;">
-日本地図に色塗りできる無料ツール（白地図・CSV対応）
-</h1>
-
-<div style="display:none;">
-このツールは、日本の白地図に色を塗ったり、星や円を配置して
-データを可視化できる無料の地図ツールです。
-CSVファイルの読み込みにも対応しており、営業エリア分析や人口分布の可視化などに活用できます。
-</div>
-
+<!-- SIDEBAR -->
 <div class="controls">
-<div class="topbar">
 
+  <!-- カラーパレット -->
+  <div class="section-card">
+    <div class="section-title">カラー</div>
     <div class="color-row">
-        <div class="color-btn" data-color="#e60000" style="background:#FCF8F8" onclick="setColor('#FCF8F8')"></div>
-        <div class="color-btn" data-color="#0070ff" style="background:#EAEBFD" onclick="setColor('#EAEBFD')"></div>
-        <div class="color-btn" data-color="#00b050" style="background:#EEFDE0" onclick="setColor('#EEFDE0')"></div>
-        <div class="color-btn" data-color="#ffff00" style="background:#FDFBE0" onclick="setColor('#FDFBE0')"></div>
-        <div class="color-btn" data-color="#ff9900" style="background:#E0FAFA" onclick="setColor('#E0FAFA')"></div>
-        <div class="color-btn" data-color="#ff66cc" style="background:#FDF0E0" onclick="setColor('#FDF0E0')"></div>
-        <div class="color-btn" data-color="#66ccff" style="background:#FDE0F0" onclick="setColor('#FDE0F0')"></div>
-        <div class="color-picker-wrap">
-            <input type="color" id="colorPicker" value="#9900ff" onchange="pickColor(this.value)">
-        </div>
+      <div class="color-btn" data-color="#FCF8F8" style="background:#FCF8F8" onclick="setColor('#FCF8F8')" title="ペールレッド"></div>
+      <div class="color-btn" data-color="#EAEBFD" style="background:#EAEBFD" onclick="setColor('#EAEBFD')" title="ペールインディゴ"></div>
+      <div class="color-btn" data-color="#EEFDE0" style="background:#EEFDE0" onclick="setColor('#EEFDE0')" title="ペールライム"></div>
+      <div class="color-btn" data-color="#FDFBE0" style="background:#FDFBE0" onclick="setColor('#FDFBE0')" title="ペールイエロー"></div>
+      <div class="color-btn" data-color="#E0FAFA" style="background:#E0FAFA" onclick="setColor('#E0FAFA')" title="ペールシアン"></div>
+      <div class="color-btn" data-color="#FDF0E0" style="background:#FDF0E0" onclick="setColor('#FDF0E0')" title="ペールオレンジ"></div>
+      <div class="color-btn" data-color="#F5E0FD" style="background:#F5E0FD" onclick="setColor('#F5E0FD')" title="ペールパープル"></div>
+      <div class="color-btn" data-color="#FDE0F0" style="background:#FDE0F0" onclick="setColor('#FDE0F0')" title="ペールピンク"></div>
+      <div class="color-btn" data-color="#E0FDE8" style="background:#E0FDE8" onclick="setColor('#E0FDE8')" title="ペールグリーン"></div>
+      <div class="color-btn" data-color="#E0EDFD" style="background:#E0EDFD" onclick="setColor('#E0EDFD')" title="ペールブルー"></div>
+      <div class="color-picker-wrap" title="カスタムカラー">
+        <input type="color" id="colorPicker" value="#9900ff" onchange="pickColor(this.value)">
+      </div>
     </div>
+    <div class="color-preview">
+      <div class="color-preview-swatch" id="colorSwatch" style="background:#FCF8F8"></div>
+      <span class="color-preview-label" id="colorLabel">#FCF8F8</span>
+    </div>
+  </div>
 
+  <!-- 描画ツール -->
+  <div class="section-card">
+    <div class="section-title">描画ツール</div>
     <div class="btn-col">
 
-        <div class="help-wrapper">
-            <span class="help-label">基本的な操作方法</span>
-            <span class="help">？</span>
-
-            <div class="tooltip big-tooltip tooltip-bottom">
-
-                <div class="help-item">
-                    <div class="help-title">■キーボード操作</div>
-                    <div class="help-body">
-                    Ctrl + Z：元に戻す<br>
-                    Ctrl + Y：先に進む
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <div class="help-title">■通常モード</div>
-                    <div class="help-body">
-                    左クリック：色塗り<br>
-                    右クリック：色削除
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <div class="help-title">■市区町村ラベル</div>
-                    <div class="help-body">
-                    左クリック：サイズ変更<br>
-                    Shift + 左クリック：白⇔黒<br>
-                    右クリック：削除
-                    </div>
-                </div>
-
-                <div class="help-item">
-                    <div class="help-title">■フリーテキスト</div>
-                    <div class="help-body">
-                    左クリック：内容 / サイズ変更<br>
-                    Shift + 左クリック：色変更（選択中の色）<br>
-                    右クリック：削除<br>
-                    ドラッグ：移動
-                    </div>
-                </div>
-
-            </div>
+      <div class="btn-item">
+        <button id="starBtn" onclick="toggleStarMode()">星モード</button>
+        <span class="help">？</span>
+        <div class="tooltip">
+          地図上で左クリック：星を追加<br>
+          左クリック：サイズ変更<br>
+          Shift+左クリック：色変更<br>
+          右クリック：削除
         </div>
-
-        <div class="btn-item">
-            <button id="toggleMapBtn" onclick="toggleJapanMap()">
-                日本地図表示
-            </button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                日本地図の表示を切り替えます
-            </div>
+      </div>
+      <div class="btn-item">
+        <button id="circleBtn" onclick="toggleCircleMode()">円モード</button>
+        <span class="help">？</span>
+        <div class="tooltip">
+          星を左クリック：円を追加<br>
+          左クリック：サイズ変更<br>
+          Shift+左クリック：色変更<br>
+          右クリック：削除
         </div>
-
-        <div class="btn-item">
-            <button onclick="resetAll()">リセット</button>
-            <span class="help">？</span>
-            <div class="tooltip">表示内容を初期化します</div>
+      </div>
+      <div class="btn-item">
+        <button id="ellipseBtn" onclick="toggleEllipseMode()">楕円モード</button>
+        <span class="help">？</span>
+        <div class="tooltip">
+          地図上で左クリック：楕円を追加<br>
+          左クリック：サイズ変更/回転<br>
+          Shift+左クリック：枠色変更<br>
+          Ctrl+Shift+左クリック：塗り色変更<br>
+          右クリック：削除
         </div>
-
-        <div class="btn-item">
-            <button onclick="downloadMap()">画像DL</button>
-            <span class="help">？</span>
-            <div class="tooltip">現在の地図を画像として保存します</div>
+      </div>
+      <div class="btn-item">
+        <button id="textBtn" onclick="toggleTextMode()">テキストモード</button>
+        <span class="help">？</span>
+        <div class="tooltip">
+          地図上で左クリック：テキスト追加<br>
+          左クリック：内容/サイズ変更<br>
+          Shift+左クリック：色変更<br>
+          右クリック：削除<br>
+          ドラッグ：移動
         </div>
-
-        <div class="btn-item">
-            <button onclick="changeAllLabelSize()">文字サイズ一括変更</button>
-            <span class="help">？</span>
-            <div class="tooltip">市区町村の文字サイズを一括変更します</div>
-        </div>
-
-        <div class="btn-item">
-            <button id="starBtn" onclick="toggleStarMode()">★モード</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                星を配置するモードに切り替えます<br>
-                ・地図上で左クリック：星を追加<br>
-                ・左クリック：サイズ変更<br>
-                ・Shift + 左クリック：色変更<br>
-                ・右クリック：削除
-            </div>
-        </div>
-
-        <div class="btn-item">
-            <button id="circleBtn" onclick="toggleCircleMode()">◯モード</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                円を配置するモードに切り替えます<br>
-                ・星を左クリック：円を追加<br>
-                ・左クリック：サイズ変更<br>
-                ・Shift + 左クリック：色変更<br>
-                ・右クリック：削除
-            </div>
-        </div>
-
-        <div class="btn-item">
-            <button id="ellipseBtn" onclick="toggleEllipseMode()">楕円モード</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                地図上に楕円を配置します<br>
-                ・地図上で左クリック：楕円追加<br>
-                ・左クリック：サイズ変更 / 回転 / 移動<br>
-                ・Shift + 左クリック：色変更（選択中の色）<br>
-                ・Ctrl + Shift + 左クリック：中の色変更（選択中の色）<br>
-                ・右クリック：削除<br>
-            </div>
-        </div>
-
-        <!-- ★新規：フリーテキストモードボタン -->
-        <div class="btn-item">
-            <button id="textBtn" onclick="toggleTextMode()">テキストモード</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                地図上に自由なテキストを配置します<br>
-                ・地図上で左クリック：テキスト追加<br>
-                ・左クリック：内容 / サイズ変更<br>
-                ・Shift + 左クリック：枠線の色変更（選択中の色）<br>
-                ・右クリック：削除<br>
-                ・ドラッグ：移動
-            </div>
-        </div>
-
-        <div class="btn-item">
-            <button id="labelToggleBtn" onclick="toggleLabels()">市区町村名非表示</button>
-            <span class="help">？</span>
-            <div class="tooltip">市区町村名の表示を切り替えます</div>
-        </div>
-
-        <div class="btn-item">
-            <button onclick="document.getElementById('csvInput').click()">CSV読込</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                指定形式データを地図上に反映します<br>
-                ・指定形式：緯度,経度,人数,フラグ<br>
-            </div>
-        </div>
-
-        <!-- ★新規：CSV編集モードボタン -->
-        <div class="btn-item">
-            <button id="csvEditBtn" onclick="toggleCsvEditMode()">CSV円編集モード</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                CSV読込で追加した円を編集するモードです<br>
-                ・左クリック：半径変更<br>
-                ・Shift + 左クリック：色変更（選択中の色）<br>
-                ・右クリック：個別削除
-            </div>
-        </div>
-
-        <!-- ★新規：CSV一括削除ボタン -->
-        <div class="btn-item">
-            <button onclick="clearAllCsvCircles()">CSV円一括削除</button>
-            <span class="help">？</span>
-            <div class="tooltip">
-                CSV読込で追加した全ての円を削除します<br>
-                （個別削除は円を右クリック）
-            </div>
-        </div>
-
-        <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="loadCSV(this.files)">
+      </div>
 
     </div>
-</div>
 
-<div id="prefList" class="pref-list"></div>
-</div>
+    <!-- 操作方法ヘルプ -->
+    <div class="help-wrapper">
+      <span class="help-label">操作方法</span>
+      <span class="help">？</span>
+      <div class="tooltip tooltip-bottom">
+        <div class="help-item">
+          <div class="help-title">■ キーボード</div>
+          <div class="help-body">Ctrl+Z：元に戻す<br>Ctrl+Y：やり直す</div>
+        </div>
+        <div class="help-item">
+          <div class="help-title">■ 通常モード</div>
+          <div class="help-body">左クリック：色塗り<br>右クリック：色削除</div>
+        </div>
+        <div class="help-item">
+          <div class="help-title">■ 市区町村ラベル</div>
+          <div class="help-body">左クリック：サイズ変更<br>Shift+左クリック：白⇔黒<br>右クリック：削除</div>
+        </div>
+        <div class="help-item">
+          <div class="help-title">■ フリーテキスト</div>
+          <div class="help-body">左クリック：内容/サイズ変更<br>Shift+左クリック：色変更<br>右クリック：削除<br>ドラッグ：移動</div>
+        </div>
+      </div>
+    </div>
+  </div>
 
+  <!-- 地図 -->
+  <div class="section-card">
+    <div class="section-title">地図</div>
+    <div class="btn-col">
+      <div class="btn-item">
+        <button id="toggleMapBtn" onclick="toggleJapanMap()">日本地図表示</button>
+        <span class="help">？</span>
+        <div class="tooltip">日本地図の表示を切り替えます</div>
+      </div>
+      <div class="btn-item">
+        <button id="labelToggleBtn" onclick="toggleLabels()">市区町村名非表示</button>
+        <span class="help">？</span>
+        <div class="tooltip">
+          市区町村名ラベルの表示を切り替えます
+        </div>
+      </div>
+      <div class="btn-item">
+        <button onclick="changeAllLabelSize()">文字サイズ一括変更</button>
+        <span class="help">？</span>
+        <div class="tooltip">市区町村の文字サイズを一括変更します</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV -->
+  <div class="section-card">
+    <div class="section-title">CSV</div>
+    <div class="btn-col">
+      <div class="btn-item">
+        <button onclick="document.getElementById('csvInput').click()">CSV読込</button>
+        <span class="help">？</span>
+        <div class="tooltip">形式：緯度,経度,人数,フラグ</div>
+      </div>
+      <div class="btn-item">
+        <button id="csvEditBtn" onclick="toggleCsvEditMode()">CSV円編集モード</button>
+        <span class="help">？</span>
+        <div class="tooltip">左クリック：半径変更<br>Shift+左クリック：色変更<br>右クリック：個別削除</div>
+      </div>
+      <div class="btn-item">
+        <button onclick="clearAllCsvCircles()">CSV円一括削除</button>
+        <span class="help">？</span>
+        <div class="tooltip">CSV読込で追加した全ての円を削除します</div>
+      </div>
+    </div>
+    <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="loadCSV(this.files)">
+  </div>
+
+  <!-- 操作 -->
+  <div class="section-card">
+    <div class="section-title">操作</div>
+    <div class="btn-col">
+      <div class="btn-item">
+        <button onclick="downloadMap()">画像DL</button>
+        <span class="help">？</span>
+        <div class="tooltip">現在の地図を画像として保存します</div>
+      </div>
+      <div class="btn-item">
+        <button onclick="resetAll()">リセット</button>
+        <span class="help">？</span>
+        <div class="tooltip">表示内容を全て初期化します</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 都道府県 -->
+  <div class="section-card">
+    <div class="section-title">都道府県</div>
+    <div id="prefList" class="pref-list"></div>
+  </div>
+
+</div><!-- /controls -->
+
+<!-- MAP -->
 <div id="map"></div>
 
+<!-- モードバッジ -->
+<div id="modeBadge">
+  <span class="badge-dot"></span>
+  <span id="modeBadgeText"></span>
+</div>
+
+<!-- スマホ用ドロワー -->
+<div id="drawerOverlay" onclick="closeDrawer()"></div>
+<button id="drawerToggle" onclick="toggleDrawer()" aria-label="メニューを開く">☰</button>
+
 <script src="app.js"></script>
+<script>
+const drawer    = document.querySelector('.controls');
+const overlay   = document.getElementById('drawerOverlay');
+const toggleBtn = document.getElementById('drawerToggle');
+
+function openDrawer() {
+  drawer.classList.add('drawer-open');
+  overlay.classList.add('open');
+  toggleBtn.textContent = '✕';
+}
+function closeDrawer() {
+  drawer.classList.remove('drawer-open');
+  overlay.classList.remove('open');
+  toggleBtn.textContent = '☰';
+}
+function toggleDrawer() {
+  drawer.classList.contains('drawer-open') ? closeDrawer() : openDrawer();
+}
+let touchStartY = 0;
+drawer.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+drawer.addEventListener('touchend', e => {
+  if (e.changedTouches[0].clientY - touchStartY > 60) closeDrawer();
+}, { passive: true });
+</script>
 </body>
 </html>

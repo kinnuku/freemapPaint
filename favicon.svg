@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <pattern id="stripe" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#1e2130"/>
+      <line x1="0" y1="0" x2="0" y2="6" stroke="rgba(255,255,255,0.07)" stroke-width="2"/>
+    </pattern>
+    <clipPath id="round">
+      <rect width="32" height="32" rx="7"/>
+    </clipPath>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="#1e2130"/>
+  <rect width="32" height="32" fill="url(#stripe)" clip-path="url(#round)"/>
+  <text
+    x="16" y="24"
+    font-family="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif"
+    font-size="22"
+    font-weight="700"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="auto"
+    letter-spacing="-1"
+  >白</text>
+</svg>
