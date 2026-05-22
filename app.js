@@ -114,7 +114,7 @@ let labelNameCache = {};
 let starMarkers    = new Map();
 let leafletCircles = new Map();
 let textMarkers    = new Map();
-let polygonLayer   = L.layerGroup().addTo(map);
+let polygonLayer   = L.featureGroup().addTo(map);
 
 let csvCircleObjects = [];
 
