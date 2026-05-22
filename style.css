@@ -6,16 +6,18 @@ body {
     margin: 0;
     font-family: sans-serif;
     display: flex;
-    height: 100%;          /* Leaflet が高さ参照できるよう必須 */
-    overflow: hidden;      /* iOS Safari のバウンススクロール防止 */
+    height: 100%;
+    /* overflow: hidden は touch-zoom を妨げるため削除 */
 }
 #map {
     flex: 1;
-    /* 100dvh = iOSアドレスバーを除いた実際の表示高さ（Safari対応） */
     height: calc(100dvh - 60px);
-    height: calc(100vh - 60px);  /* dvh非対応ブラウザのフォールバック */
+    height: calc(100vh - 60px);
     margin-top: 60px;
     min-height: 0;
+    touch-action: none;    /* LeafletがピンチズームをJSで処理するために必須 */
+    -webkit-user-select: none; /* iOS長押し選択を防止 */
+    user-select: none;
 }
 .controls {
     width: 260px;

@@ -55,7 +55,9 @@ const map = L.map('map',{
     zoomSnap:0.1,
     zoomDelta:0.2,
     wheelPxPerZoomLevel:200,
-    preferCanvas:true
+    preferCanvas:true,
+    touchZoom:true,        /* スマホのピンチズームを明示的に有効化 */
+    tap:false,             /* LeafletのtapハンドラをOFF（iOS Safari の競合を防ぐ） */
 }).setView([37.5,137],5);
 
 map.createPane("polygonPane");
