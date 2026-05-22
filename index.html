@@ -247,9 +247,6 @@ drawer.addEventListener('touchend', e => {
   const tag = e.target.tagName;
   if (tag !== 'INPUT' && tag !== 'BUTTON' && tag !== 'LABEL' && dy > 60 && dy > dx) closeDrawer();
 }, { passive: true });
-document.getElementById('prefList').addEventListener('change', () => {
-  if (typeof render === 'function') setTimeout(render, 10);
-});
 </script>
 </body>
 </html>

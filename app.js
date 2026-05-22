@@ -55,10 +55,7 @@ const map = L.map('map',{
     zoomSnap:0.1,
     zoomDelta:0.2,
     wheelPxPerZoomLevel:200,
-    preferCanvas:true,
-    touchZoom: true,
-    tap: true,
-    tapTolerance: 15,
+    preferCanvas:true
 }).setView([37.5,137],5);
 
 map.createPane("polygonPane");
@@ -1717,5 +1714,6 @@ function removeEllipseLayer(obj){
     toggleTextMode(false);
     toggleCsvEditMode(false);
     toggleEllipseMode(false);
+    // iOS Safari でレイアウト確定後に再描画
     setTimeout(() => map.invalidateSize(), 300);
 })();

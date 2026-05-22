@@ -1,21 +1,22 @@
 /* ===== 元のstyle.cssベース ===== */
-html, body { margin: 0; height: 100%; }
+html {
+    height: 100%;
+}
 body {
+    margin: 0;
     font-family: sans-serif;
     display: flex;
+    height: 100%;
 }
 #map {
     flex: 1;
-    height: calc(100dvh - 60px);
-    height: calc(100dvh - 60px);
-    height: calc(100vh - 60px);
-    margin-top: 60px;
-    min-height: 0;
+    height: 100%;          /* bodyがheight:100%なのでこれで全画面 */
+    margin-top: 60px;      /* fixed headerの下から */
+    box-sizing: border-box;
 }
 .controls {
     width: 260px;
-    height: calc(100dvh - 60px);
-    height: calc(100vh - 60px);
+    height: calc(100% - 60px);
     margin-top: 60px;
     overflow-y: auto;
     overflow-x: hidden;
@@ -141,6 +142,7 @@ button.active {
     align-items: center;
     gap: 5px;
     transition: 0.15s;
+    min-height: 36px;
 }
 .pref-list label:hover { background: #444; color: #fff; }
 .pref-list input[type="checkbox"] {
@@ -188,14 +190,6 @@ button.active {
 .star-icon div { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .leaflet-div-icon { background: transparent !important; border: none !important; box-shadow: none !important; }
 .leaflet-top { top: 70px !important; }
-/* ズームコントロールのタップを確実に有効化 */
-.leaflet-control-zoom a {
-    touch-action: manipulation !important;
-    pointer-events: auto !important;
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: pointer;
-}
 
 .free-text-icon { background: transparent !important; border: none !important; }
 .free-text-inner {
@@ -295,7 +289,6 @@ button.active {
     cursor: pointer;
     transition: 0.2s;
     border: none;
-    /* ← buttonリセットで width:100% になるのを防ぐ */
     width: 22px !important;
     height: 22px !important;
     padding: 0 !important;
@@ -307,11 +300,9 @@ button.active {
 /* ===== ツールチップ：サイドバー内の上に出す ===== */
 .tooltip {
     position: absolute;
-    /* btn-itemの上に出す */
     bottom: calc(100% + 6px);
     left: 0;
     right: 0;
-
     background: #111;
     color: #eee;
     padding: 9px 11px;
@@ -323,7 +314,6 @@ button.active {
     z-index: 9999;
     pointer-events: none;
     border: 1px solid #444;
-
     opacity: 0;
     transform: translateY(4px);
     transition: opacity 0.18s, transform 0.18s;
@@ -430,25 +420,41 @@ button.active {
 #drawerOverlay.open { opacity: 1; }
 
 @media (max-width: 768px) {
-    body { flex-direction: column; padding-top: 60px; }
+    body {
+        flex-direction: column;
+    }
+
+    /* ヘッダーは fixed なので #map を上からパディング */
+    #map {
+        width: 100%;
+        height: calc(100dvh - 60px);
+        height: calc(100vh - 60px);
+        margin-top: 60px;  /* headerの高さ分だけ下げる */
+        flex: 1;
+        min-height: 0;
+        position: relative;
+        z-index: 1;        /* controls(9995)より必ず下 */
+    }
 
     .controls {
         position: fixed;
         bottom: 0; left: 0; right: 0;
         width: 100%;
-        height: 78vh;
-        max-height: 78vh;
+        height: 70vh;
+        max-height: 70vh;
         margin-top: 0;
         border-radius: 20px 20px 0 0;
         z-index: 9995;
         transform: translateY(100%);
         transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
         box-shadow: 0 -6px 32px rgba(0,0,0,0.5);
-        pointer-events: none; /* 閉じているときはタッチを通過させる */
+        pointer-events: none;   /* ★ 閉じているときはタッチを地図に通す */
+        visibility: hidden;     /* ★ タッチだけでなく視覚的にも完全に隠す */
     }
     .controls.drawer-open {
         transform: translateY(0);
-        pointer-events: auto; /* 開いているときだけタッチを受け取る */
+        pointer-events: auto;
+        visibility: visible;
     }
     .controls::before {
         content: '';
@@ -459,11 +465,10 @@ button.active {
         margin: 10px auto 4px;
         flex-shrink: 0;
     }
-    #map { width: 100%; height: calc(100dvh - 60px); height: calc(100vh - 60px); margin-top: 0; flex: 1; min-height: 0; }
     #modeBadge { left: 16px; bottom: 88px; }
     #drawerToggle { display: flex; }
     #drawerOverlay { display: block; }
-    .tooltip { display: none; } /* スマホはツールチップ非表示 */
+    .tooltip { display: none; }
     .leaflet-top { top: 70px !important; }
     .leaflet-left { left: 10px !important; }
 }
