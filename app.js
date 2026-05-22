@@ -57,7 +57,8 @@ const map = L.map('map',{
     wheelPxPerZoomLevel:200,
     preferCanvas:true,
     touchZoom: true,
-    tap: false,
+    tap: true,
+    tapTolerance: 15,
 }).setView([37.5,137],5);
 
 map.createPane("polygonPane");
