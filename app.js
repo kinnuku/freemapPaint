@@ -1716,7 +1716,5 @@ function removeEllipseLayer(obj){
     toggleTextMode(false);
     toggleCsvEditMode(false);
     toggleEllipseMode(false);
-
-    // iOS Safari レイアウト確定後に地図を再描画
-    setTimeout(() => map.invalidateSize(), 200);
+    setTimeout(() => map.invalidateSize(), 300);
 })();

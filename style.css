@@ -1,8 +1,5 @@
 /* ===== 元のstyle.cssベース ===== */
-html, body {
-    margin: 0;
-    height: 100%;
-}
+html, body { margin: 0; height: 100%; }
 body {
     font-family: sans-serif;
     display: flex;
@@ -10,12 +7,14 @@ body {
 #map {
     flex: 1;
     height: calc(100dvh - 60px);
-    height: calc(100vh - 60px); /* fallback */
+    height: calc(100dvh - 60px);
+    height: calc(100vh - 60px);
     margin-top: 60px;
     min-height: 0;
 }
 .controls {
     width: 260px;
+    height: calc(100dvh - 60px);
     height: calc(100vh - 60px);
     margin-top: 60px;
     overflow-y: auto;
@@ -189,20 +188,9 @@ button.active {
 .star-icon div { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .leaflet-div-icon { background: transparent !important; border: none !important; box-shadow: none !important; }
 .leaflet-top { top: 70px !important; }
-
-/* Leaflet タッチ設定 */
-.leaflet-container {
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-.leaflet-control-container,
-.leaflet-control-container * {
-    touch-action: auto !important;
-    pointer-events: auto !important;
-    -webkit-user-select: auto !important;
-    user-select: auto !important;
-}
+/* ピンチ・タップをLeafletに渡す。+/-ボタンは除外 */
+.leaflet-container { touch-action: none; -webkit-user-select: none; user-select: none; }
+.leaflet-control-container * { touch-action: manipulation !important; pointer-events: auto !important; }
 
 .free-text-icon { background: transparent !important; border: none !important; }
 .free-text-inner {
@@ -437,10 +425,7 @@ button.active {
 #drawerOverlay.open { opacity: 1; }
 
 @media (max-width: 768px) {
-    body {
-        flex-direction: column;
-        padding-top: 60px;
-    }
+    body { flex-direction: column; padding-top: 60px; }
 
     .controls {
         position: fixed;
@@ -465,14 +450,7 @@ button.active {
         margin: 10px auto 4px;
         flex-shrink: 0;
     }
-    #map {
-        width: 100%;
-        height: calc(100dvh - 60px);
-        height: calc(100vh - 60px);
-        flex: 1;
-        min-height: 0;
-        margin-top: 0; /* スマホはbodyにpadding-topで対応 */
-    }
+    #map { width: 100%; height: calc(100dvh - 60px); height: calc(100vh - 60px); margin-top: 0; flex: 1; min-height: 0; }
     #modeBadge { left: 16px; bottom: 88px; }
     #drawerToggle { display: flex; }
     #drawerOverlay { display: block; }
