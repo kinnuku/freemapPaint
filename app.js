@@ -1714,4 +1714,8 @@ function removeEllipseLayer(obj){
     toggleTextMode(false);
     toggleCsvEditMode(false);
     toggleEllipseMode(false);
+
+    // iOS Safari でレイアウト確定後に地図を再描画（真っ白になる問題の対策）
+    setTimeout(() => map.invalidateSize(), 100);
+    setTimeout(() => map.invalidateSize(), 500);
 })();

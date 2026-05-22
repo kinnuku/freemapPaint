@@ -1,17 +1,25 @@
 /* ===== 元のstyle.cssベース ===== */
+html {
+    height: 100%;
+}
 body {
     margin: 0;
     font-family: sans-serif;
     display: flex;
+    height: 100%;          /* Leaflet が高さ参照できるよう必須 */
+    overflow: hidden;      /* iOS Safari のバウンススクロール防止 */
 }
 #map {
     flex: 1;
-    height: calc(100vh - 60px); /* fixed headerの高さを引く */
-    margin-top: 60px;           /* fixed headerの下から開始 */
+    /* 100dvh = iOSアドレスバーを除いた実際の表示高さ（Safari対応） */
+    height: calc(100dvh - 60px);
+    height: calc(100vh - 60px);  /* dvh非対応ブラウザのフォールバック */
+    margin-top: 60px;
     min-height: 0;
 }
 .controls {
     width: 260px;
+    height: calc(100dvh - 60px);
     height: calc(100vh - 60px);
     margin-top: 60px;
     overflow-y: auto;
@@ -425,14 +433,16 @@ button.active {
 @media (max-width: 768px) {
     body {
         flex-direction: column;
-        padding-top: 60px; /* fixed headerの高さ分を確保 */
+        padding-top: 0;
     }
 
     .controls {
         position: fixed;
         bottom: 0; left: 0; right: 0;
         width: 100%;
-        height: 78vh;
+        height: 78dvh;
+        height: 78vh;     /* フォールバック */
+        max-height: 78dvh;
         max-height: 78vh;
         margin-top: 0;
         border-radius: 20px 20px 0 0;
@@ -453,9 +463,10 @@ button.active {
     }
     #map {
         width: 100%;
-        height: calc(100vh - 60px); /* headerの高さを除いた全画面 */
+        height: calc(100dvh - 60px);
+        height: calc(100vh - 60px); /* dvh非対応フォールバック */
         flex: 1;
-        min-height: 0; /* flexで潰れないよう */
+        min-height: 0;
     }
     #modeBadge { left: 16px; bottom: 88px; }
     #drawerToggle { display: flex; }
