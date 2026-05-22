@@ -237,9 +237,26 @@ function toggleDrawer() {
   drawer.classList.contains('drawer-open') ? closeDrawer() : openDrawer();
 }
 let touchStartY = 0;
-drawer.addEventListener('touchstart', e => { touchStartY = e.touches[0].clientY; }, { passive: true });
+let touchStartX = 0;
+drawer.addEventListener('touchstart', e => {
+  touchStartY = e.touches[0].clientY;
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
 drawer.addEventListener('touchend', e => {
-  if (e.changedTouches[0].clientY - touchStartY > 60) closeDrawer();
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
+  const target = e.target;
+  const isInteractive = target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'LABEL';
+  if (!isInteractive && dy > 60 && dy > dx) closeDrawer();
+}, { passive: true });
+
+// スマホ：チェックボックスのtouchでrenderが確実に呼ばれるよう補完
+document.getElementById('prefList').addEventListener('touchend', e => {
+  const target = e.target;
+  if (target.tagName === 'INPUT' && target.type === 'checkbox') {
+    // touchendの後にclickが来るブラウザもあるので少し待ってrenderを呼ぶ
+    setTimeout(() => { if (typeof render === 'function') render(); }, 50);
+  }
 }, { passive: true });
 </script>
 </body>

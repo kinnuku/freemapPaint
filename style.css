@@ -136,13 +136,18 @@ button.active {
     align-items: center;
     gap: 5px;
     transition: 0.15s;
+    min-height: 36px;       /* タップ領域を広げる */
+    touch-action: manipulation; /* ダブルタップズームを防止 */
+    -webkit-tap-highlight-color: rgba(0,112,255,0.2);
 }
 .pref-list label:hover { background: #444; color: #fff; }
 .pref-list input[type="checkbox"] {
     accent-color: #0070ff;
     flex-shrink: 0;
-    width: 12px;
-    height: 12px;
+    width: 18px;           /* スマホ用に大きく */
+    height: 18px;
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 /* 地方区切りラベル：2列全部使って横断 */
