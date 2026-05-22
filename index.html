@@ -236,8 +236,7 @@ function closeDrawer() {
 function toggleDrawer() {
   drawer.classList.contains('drawer-open') ? closeDrawer() : openDrawer();
 }
-let touchStartY = 0;
-let touchStartX = 0;
+let touchStartY = 0, touchStartX = 0;
 drawer.addEventListener('touchstart', e => {
   touchStartY = e.touches[0].clientY;
   touchStartX = e.touches[0].clientX;
@@ -245,19 +244,14 @@ drawer.addEventListener('touchstart', e => {
 drawer.addEventListener('touchend', e => {
   const dy = e.changedTouches[0].clientY - touchStartY;
   const dx = Math.abs(e.changedTouches[0].clientX - touchStartX);
-  const target = e.target;
-  const isInteractive = target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'LABEL';
-  if (!isInteractive && dy > 60 && dy > dx) closeDrawer();
+  const tag = e.target.tagName;
+  if (tag !== 'INPUT' && tag !== 'BUTTON' && tag !== 'LABEL' && dy > 60 && dy > dx) closeDrawer();
 }, { passive: true });
 
-// スマホ：チェックボックスのtouchでrenderが確実に呼ばれるよう補完
-document.getElementById('prefList').addEventListener('touchend', e => {
-  const target = e.target;
-  if (target.tagName === 'INPUT' && target.type === 'checkbox') {
-    // touchendの後にclickが来るブラウザもあるので少し待ってrenderを呼ぶ
-    setTimeout(() => { if (typeof render === 'function') render(); }, 50);
-  }
-}, { passive: true });
+// チェックボックスのタップでrenderを確実に呼ぶ
+document.getElementById('prefList').addEventListener('change', () => {
+  if (typeof render === 'function') setTimeout(render, 10);
+});
 </script>
 </body>
 </html>

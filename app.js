@@ -56,8 +56,8 @@ const map = L.map('map',{
     zoomDelta:0.2,
     wheelPxPerZoomLevel:200,
     preferCanvas:true,
-    touchZoom:true,        /* スマホのピンチズームを明示的に有効化 */
-    tap:false,             /* LeafletのtapハンドラをOFF（iOS Safari の競合を防ぐ） */
+    touchZoom: true,
+    tap: false,
 }).setView([37.5,137],5);
 
 map.createPane("polygonPane");
@@ -1717,7 +1717,6 @@ function removeEllipseLayer(obj){
     toggleCsvEditMode(false);
     toggleEllipseMode(false);
 
-    // iOS Safari でレイアウト確定後に地図を再描画（真っ白になる問題の対策）
-    setTimeout(() => map.invalidateSize(), 100);
-    setTimeout(() => map.invalidateSize(), 500);
+    // iOS Safari レイアウト確定後に地図を再描画
+    setTimeout(() => map.invalidateSize(), 200);
 })();
