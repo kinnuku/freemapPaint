@@ -6,7 +6,9 @@ body {
 }
 #map {
     flex: 1;
-    height: 100vh;
+    height: calc(100vh - 60px); /* fixed headerの高さを引く */
+    margin-top: 60px;           /* fixed headerの下から開始 */
+    min-height: 0;
 }
 .controls {
     width: 260px;
@@ -421,7 +423,10 @@ button.active {
 #drawerOverlay.open { opacity: 1; }
 
 @media (max-width: 768px) {
-    body { flex-direction: column; }
+    body {
+        flex-direction: column;
+        padding-top: 60px; /* fixed headerの高さ分を確保 */
+    }
 
     .controls {
         position: fixed;
@@ -446,11 +451,16 @@ button.active {
         margin: 10px auto 4px;
         flex-shrink: 0;
     }
-    #map { width: 100%; height: calc(100vh - 60px); }
+    #map {
+        width: 100%;
+        height: calc(100vh - 60px); /* headerの高さを除いた全画面 */
+        flex: 1;
+        min-height: 0; /* flexで潰れないよう */
+    }
     #modeBadge { left: 16px; bottom: 88px; }
     #drawerToggle { display: flex; }
     #drawerOverlay { display: block; }
-    .tooltip { display: none; } /* スマホはツールチップ非表示 */
+    .tooltip { display: none; }
     .leaflet-top { top: 70px !important; }
     .leaflet-left { left: 10px !important; }
 }
