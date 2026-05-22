@@ -444,8 +444,12 @@ button.active {
         transform: translateY(100%);
         transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
         box-shadow: 0 -6px 32px rgba(0,0,0,0.5);
+        pointer-events: none; /* 閉じているときはタッチを通過させる */
     }
-    .controls.drawer-open { transform: translateY(0); }
+    .controls.drawer-open {
+        transform: translateY(0);
+        pointer-events: auto; /* 開いているときだけタッチを受け取る */
+    }
     .controls::before {
         content: '';
         display: block;
