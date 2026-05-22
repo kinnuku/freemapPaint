@@ -15,9 +15,6 @@ body {
     height: calc(100vh - 60px);
     margin-top: 60px;
     min-height: 0;
-    touch-action: none;    /* LeafletがピンチズームをJSで処理するために必須 */
-    -webkit-user-select: none; /* iOS長押し選択を防止 */
-    user-select: none;
 }
 .controls {
     width: 260px;
@@ -199,6 +196,17 @@ button.active {
 .star-icon div { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 .leaflet-div-icon { background: transparent !important; border: none !important; box-shadow: none !important; }
 .leaflet-top { top: 70px !important; }
+
+/* タッチ操作: キャンバス部分だけJSで処理、コントロールボタンは通常のタッチを維持 */
+.leaflet-container {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.leaflet-control-container * {
+    touch-action: auto !important; /* +/-ボタン等は通常タッチを許可 */
+    pointer-events: auto !important;
+}
 
 .free-text-icon { background: transparent !important; border: none !important; }
 .free-text-inner {
@@ -475,6 +483,17 @@ button.active {
     #drawerOverlay { display: block; }
     .tooltip { display: none; }
     .leaflet-top { top: 70px !important; }
+
+/* タッチ操作: キャンバス部分だけJSで処理、コントロールボタンは通常のタッチを維持 */
+.leaflet-container {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+.leaflet-control-container * {
+    touch-action: auto !important; /* +/-ボタン等は通常タッチを許可 */
+    pointer-events: auto !important;
+}
     .leaflet-left { left: 10px !important; }
 }
 
