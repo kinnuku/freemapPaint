@@ -50,13 +50,44 @@ document.addEventListener('keydown', e => {
    ===================================================== */
 
 const map = L.map('map',{
-    zoomControl:true,
+    zoomControl: false,   /* ★ デフォルトのズームコントロールを無効化し、後で手動追加 */
     attributionControl:false,
     zoomSnap:0.1,
     zoomDelta:0.2,
     wheelPxPerZoomLevel:200,
     preferCanvas:true
 }).setView([37.5,137],5);
+
+/* ★ ズームコントロールをスマホでも確実にタップできるよう手動追加 */
+const zoomControl = L.control.zoom({ position: 'topleft' });
+zoomControl.addTo(map);
+
+/* ★ ズームコントロールのDOM要素に直接スタイルを適用（CSSより確実） */
+setTimeout(() => {
+    const zoomContainer = zoomControl.getContainer();
+    if(zoomContainer){
+        zoomContainer.style.zIndex = '99999';
+        zoomContainer.style.position = 'relative';
+        /* ボタンを大きくしてタップしやすく */
+        const btns = zoomContainer.querySelectorAll('a');
+        btns.forEach(btn => {
+            btn.style.width  = '44px';
+            btn.style.height = '44px';
+            btn.style.lineHeight = '44px';
+            btn.style.fontSize = '20px';
+            /* ★ touchstart で直接ズーム処理（クリックイベントが届かない問題を回避） */
+            btn.addEventListener('touchstart', function(e){
+                e.preventDefault();
+                e.stopPropagation();
+                if(this.classList.contains('leaflet-control-zoom-in')){
+                    map.zoomIn();
+                } else if(this.classList.contains('leaflet-control-zoom-out')){
+                    map.zoomOut();
+                }
+            }, { passive: false });
+        });
+    }
+}, 100);
 
 map.createPane("polygonPane");
 map.createPane("circlePane");
@@ -339,9 +370,6 @@ async function render(){
             }
 
             // N03_007ごとに最大面積featureを事前集計
-            // （1市区町村が数百featureに分割されているため、
-            //   最初に来たfeatureの重心でなく最大ポリゴンの重心を使う）
-            // Polygon / MultiPolygon 両対応
             const bestFeatureForKey = {};
             const bestAreaForKey = {};
             const _ringArea = ring => {
@@ -359,12 +387,10 @@ async function render(){
                 const geom = feat.geometry;
                 let maxA = 0;
                 if(geom.type === "MultiPolygon"){
-                    // coordinates = [ [[outerRing],[hole],...], ... ]
                     for(const poly of geom.coordinates){
                         maxA = Math.max(maxA, _ringArea(poly[0]));
                     }
                 } else if(geom.type === "Polygon"){
-                    // coordinates = [[outerRing],[hole],...]
                     maxA = _ringArea(geom.coordinates[0]);
                 }
                 if(maxA > (bestAreaForKey[k] || 0)){
@@ -424,7 +450,6 @@ async function render(){
                             }
                             prevLabelMarkers[key].addTo(labelLayer);
                         } else {
-                            // 手動移動済み座標を最優先、なければ最大featureの重心
                             const center = labelPos[key]
                                 ? L.latLng(labelPos[key].lat, labelPos[key].lng)
                                 : getLabelPoint(bestFeatureForKey[key] || f, key, layer);
@@ -647,7 +672,6 @@ map.on('click', e => {
 
     /* 楕円モード */
     if(ellipseMode){
-        /* 楕円・ハンドル上のクリックは stopPropagation するのでここには来ない */
         /* 選択中のハンドルを解除 */
         if(selectedEllipse){
             deselectEllipse();
@@ -660,9 +684,9 @@ map.on('click', e => {
             rxKm:      30,
             ryKm:      15,
             rot:       0,
-            color:     currentColor,  /* 枠線色 */
-            fillColor: null,          /* 塗り色（null=透明） */
-            opacity:   0              /* 塗り透明度 */
+            color:     currentColor,
+            fillColor: null,
+            opacity:   0
         };
         ellipseData.push(obj);
         saveEllipses();
@@ -856,7 +880,6 @@ function toggleTextMode(forceValue=null){
         toggleCsvEditMode(false);
         toggleEllipseMode(false);
     }
-    /* BUG FIX: textModeがfalseのときはpointerEventsをnoneにする */
     map.getPane("textPane").style.pointerEvents = textMode ? "auto" : "none";
     showModeBadge(_activeMode());
 }
@@ -921,26 +944,15 @@ function addFreeText(t){
     });
 
     marker.on('click', e => {
-// ★ Ctrl + Shift → 背景色変更
         if(e.originalEvent.shiftKey && e.originalEvent.ctrlKey){
             const prev = t.bgColor || "transparent";
             const next = currentColor;
-
             t.bgColor = next;
             saveFreeTexts();
             marker.setIcon(makeTextIcon(t));
-
             pushHistory(`テキスト背景色変更`,
-                () => {
-                    t.bgColor = prev;
-                    saveFreeTexts();
-                    if(textMarkers.has(t)) textMarkers.get(t).setIcon(makeTextIcon(t));
-                },
-                () => {
-                    t.bgColor = next;
-                    saveFreeTexts();
-                    if(textMarkers.has(t)) textMarkers.get(t).setIcon(makeTextIcon(t));
-                }
+                () => { t.bgColor = prev; saveFreeTexts(); if(textMarkers.has(t)) textMarkers.get(t).setIcon(makeTextIcon(t)); },
+                () => { t.bgColor = next; saveFreeTexts(); if(textMarkers.has(t)) textMarkers.get(t).setIcon(makeTextIcon(t)); }
             );
             return;
         }
@@ -1272,21 +1284,6 @@ function addCsvCircle(circleObj){
 
 /* =====================================================
    ★ 楕円機能
-   =====================================================
-
-   ハンドル構成（楕円モード中に楕円をクリックで出現）:
-     ●  長軸端 2点 … ドラッグで長軸を伸縮
-     ●  短軸端 2点 … ドラッグで短軸を伸縮
-     ↻  回転ハンドル (長軸端の外側) … ドラッグで回転
-     ✛  中心ハンドル … ドラッグで移動
-
-   操作:
-     楕円モード中 地図クリック → 楕円新規追加（長軸30km・短軸15km）
-     楕円クリック              → ハンドル表示
-     ハンドルドラッグ          → リアルタイム変形 / 移動 / 回転
-     Shift + 楕円クリック      → 色変更（選択中の色）
-     右クリック                → 削除
-     ハンドル外クリック        → ハンドル解除
    ===================================================== */
 
 const EARTH_R = 6371; // km
@@ -1313,7 +1310,6 @@ function deselectEllipse(){
     const rec = ellipseMarkers.get(selectedEllipse);
     if(rec) rec.handleLayer.clearLayers();
     selectedEllipse = null;
-    // ★情報ボックスを隠す
     const infoBox = document.getElementById('ellipseInfoBox');
     if(infoBox) infoBox.style.display = 'none';
 }
@@ -1336,7 +1332,7 @@ function ellipseLatLngs(lat, lng, rxKm, ryKm, rotDeg, N = 360){
     return pts;
 }
 
-/* 楕円上の1点（theta は局所座標系）→ LatLng */
+/* 楕円上の1点 */
 function ellipsePoint(lat, lng, rxKm, ryKm, rotDeg, theta){
     const rotRad = (rotDeg * Math.PI) / 180;
     const latRad = (lat    * Math.PI) / 180;
@@ -1352,12 +1348,11 @@ function ellipsePoint(lat, lng, rxKm, ryKm, rotDeg, theta){
 /* ----- 楕円の4点座標を画面表示 ----- */
 function _displayEllipseCoordinates(obj){
     const center = `中心: (${obj.lat.toFixed(6)}, ${obj.lng.toFixed(6)})`;
-    const pt_rx_plus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, 0);
+    const pt_rx_plus  = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, 0);
     const pt_rx_minus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, Math.PI);
-    const pt_ry_plus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, Math.PI / 2);
+    const pt_ry_plus  = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, Math.PI / 2);
     const pt_ry_minus = ellipsePoint(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot, 3 * Math.PI / 2);
-    
-    // 表示用DIVを取得または作成
+
     let infoBox = document.getElementById('ellipseInfoBox');
     if(!infoBox){
         infoBox = document.createElement('div');
@@ -1380,7 +1375,7 @@ function _displayEllipseCoordinates(obj){
         `;
         document.body.appendChild(infoBox);
     }
-    
+
     infoBox.innerHTML = `
         <div style="color: #0066cc; font-weight: bold; margin-bottom: 8px;">楕円の座標情報</div>
         <div>${center}</div>
@@ -1412,7 +1407,6 @@ function addEllipse(obj){
         L.DomEvent.stopPropagation(e);
         if(!ellipseMode) return;
 
-        /* Ctrl+Shift+クリック → 塗り色変更 */
         if(e.originalEvent.shiftKey && e.originalEvent.ctrlKey){
             const prev = obj.fillColor, prevOp = obj.opacity;
             const next = currentColor, nextOp = 0.3;
@@ -1425,7 +1419,6 @@ function addEllipse(obj){
             return;
         }
 
-        /* Shift+クリック → 枠線色変更 */
         if(e.originalEvent.shiftKey){
             const prev = obj.color, next = currentColor;
             obj.color = next; saveEllipses();
@@ -1437,10 +1430,8 @@ function addEllipse(obj){
             return;
         }
 
-        /* ★座標表示 */
         _displayEllipseCoordinates(obj);
-        
-        /* ハンドル表示 / 解除 */
+
         if(selectedEllipse === obj){
             deselectEllipse();
         } else {
@@ -1477,7 +1468,6 @@ function selectEllipse(obj){
     const rec = ellipseMarkers.get(obj);
     if(!rec) return;
     _buildHandles(obj, rec);
-    // ★情報ボックスを表示
     const infoBox = document.getElementById('ellipseInfoBox');
     if(infoBox) infoBox.style.display = 'block';
 }
@@ -1523,7 +1513,6 @@ function _moveHandleIcon(){
 function _buildHandles(obj, rec){
     rec.handleLayer.clearLayers();
 
-    /* 軸ハンドル 4点 */
     [
         { key: "rx+", theta: 0 },
         { key: "rx-", theta: Math.PI },
@@ -1545,7 +1534,6 @@ function _buildHandles(obj, rec){
             ellipseMarkers.get(obj).poly.setLatLngs(
                 ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot));
             _updateHandlePositions(obj, rec);
-            // ★ドラッグ中に4点座標を表示
             _displayEllipseCoordinates(obj);
         });
         m.on('dragend', function(){
@@ -1573,19 +1561,14 @@ function _buildHandles(obj, rec){
     rotM.on('drag', function(e){
         const cPx = map.latLngToContainerPoint(L.latLng(obj.lat, obj.lng));
         const hPx = map.latLngToContainerPoint(e.target.getLatLng());
-
         const dx  = hPx.x - cPx.x;
         const dy  = hPx.y - cPx.y;
-
         const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-
         obj.rot = (360 - angle) % 360;
-
         ellipseMarkers.get(obj).poly.setLatLngs(
             ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot)
         );
         _updateHandlePositions(obj, rec);
-        // ★ドラッグ中に4点座標を表示
         _displayEllipseCoordinates(obj);
     });
     rotM.on('dragend', function(){
@@ -1616,7 +1599,6 @@ function _buildHandles(obj, rec){
         ellipseMarkers.get(obj).poly.setLatLngs(
             ellipseLatLngs(obj.lat, obj.lng, obj.rxKm, obj.ryKm, obj.rot));
         _updateHandlePositions(obj, rec);
-        // ★ドラッグ中に4点座標を表示
         _displayEllipseCoordinates(obj);
     });
     cM.on('dragend', function(){
@@ -1666,7 +1648,7 @@ function _updateHandlePositions(obj, rec){
     });
 }
 
-/* ----- 楕円を全体再描画（undo/redo後など） ----- */
+/* ----- 楕円を全体再描画 ----- */
 function _refreshEllipse(obj){
     const rec = ellipseMarkers.get(obj);
     if(!rec) return;
