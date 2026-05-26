@@ -98,7 +98,10 @@ map.createPane("starPane");
 map.createPane("labelPane");
 map.createPane("textPane");
 
+map.createPane("borderPane");
 map.getPane("polygonPane").style.zIndex      = 300;
+map.getPane("borderPane").style.zIndex       = 310; /* ★ ポリゴンより前面 */
+map.getPane("borderPane").style.pointerEvents= "none";
 map.getPane("circlePane").style.zIndex       = 450;
 map.getPane("csvPane").style.zIndex          = 460;
 map.getPane("ellipsePane").style.zIndex      = 480; /* ★ circlePane〜starPane の間 */
@@ -114,6 +117,7 @@ map.getPane("ellipsePane").style.pointerEvents      = "none";
 map.getPane("ellipseHandlePane").style.pointerEvents= "none";
 
 let layerGroup     = L.layerGroup().addTo(map);
+let borderLayer    = L.layerGroup().addTo(map);
 let labelLayer     = L.layerGroup().addTo(map);
 let starLayer      = L.layerGroup().addTo(map);
 let circleLayer    = L.layerGroup().addTo(map);
@@ -352,6 +356,7 @@ function getName(f){ return f.properties.N03_005 || f.properties.N03_004; }
    ===================================================== */
 async function render(){
     polygonLayer.clearLayers();
+    borderLayer.clearLayers();
     used.clear();
     renderedKeys.clear();
 
@@ -476,14 +481,14 @@ async function render(){
                 }
                 if(borderData){
                     L.geoJSON(borderData, {
-                        pane: "polygonPane",
+                        pane: "borderPane",
                         style: {
                             color: "#000",
                             weight: 6,
                             fillOpacity: 0,
                             interactive: false
                         }
-                    }).addTo(polygonLayer);
+                    }).addTo(borderLayer);
                 }
             } catch(e){ /* border.geojson がない県はスキップ */ }
 
@@ -491,6 +496,7 @@ async function render(){
     }
 
     polygonLayer.bringToBack();
+    borderLayer.bringToFront();
     circleLayer.bringToFront();
     starLayer.bringToFront();
     labelLayer.bringToFront();
