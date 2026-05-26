@@ -484,7 +484,7 @@ async function render(){
                         pane: "borderPane",
                         style: {
                             color: "#000",
-                            weight: 6,
+                            weight: 3,
                             fillOpacity: 0,
                             interactive: false
                         }
