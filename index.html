@@ -122,7 +122,7 @@
         </div>
         <div class="help-item">
           <div class="help-title">■ 市区町村ラベル</div>
-          <div class="help-body">左クリック：サイズ変更<br>Shift+左クリック：白⇔黒<br>右クリック：削除</div>
+          <div class="help-body">左クリック：サイズ変更<br>Shift+左クリック：白⇔黒<br>右クリック：削除<br>「地域コード表示」で5桁コード切替</div>
         </div>
         <div class="help-item">
           <div class="help-title">■ フリーテキスト</div>
@@ -152,6 +152,11 @@
         <button onclick="changeAllLabelSize()">文字サイズ一括変更</button>
         <span class="help">？</span>
         <div class="tooltip">市区町村の文字サイズを一括変更します</div>
+      </div>
+      <div class="btn-item">
+        <button id="labelDisplayModeBtn" onclick="toggleLabelDisplayMode()">地域コード表示</button>
+        <span class="help">？</span>
+        <div class="tooltip">市区町村名と地域コード（5桁）の表示を切り替えます</div>
       </div>
     </div>
   </div>

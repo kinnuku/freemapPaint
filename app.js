@@ -108,7 +108,10 @@ map.getPane("labelPane").style.zIndex        = 550;
 map.getPane("textPane").style.zIndex         = 600;
 
 /* csvPane は CSV編集モード時のみ操作可 */
-map.getPane("csvPane").style.pointerEvents = "none";
+map.getPane("csvPane").style.pointerEvents          = "none";
+/* ★ 楕円ペーンも起動時は無効（ellipseModeがfalseのため） */
+map.getPane("ellipsePane").style.pointerEvents      = "none";
+map.getPane("ellipseHandlePane").style.pointerEvents= "none";
 
 let layerGroup     = L.layerGroup().addTo(map);
 let labelLayer     = L.layerGroup().addTo(map);
@@ -497,12 +500,15 @@ async function render(){
 /* =====================================================
    ラベルマーカー生成
    ===================================================== */
+let labelDisplayMode = "name"; /* "name" | "code" */
+
 function makeLabelIcon(key, safeName){
+    const text = labelDisplayMode === "code" ? escapeHtml(key) : safeName;
     return L.divIcon({
         className:'label',
         html:`<div class="label-inner"
             style="font-size:${sizeData[key]||12}px;color:${labelColorData[key]||'#000'}">
-            ${safeName}
+            ${text}
         </div>`
     });
 }
@@ -634,10 +640,17 @@ function makeStarIcon(s){
 }
 
 /* =====================================================
+   地図右クリックハンドラ（ブラウザメニュー・画面ずれを防止）
+   ===================================================== */
+map.on('contextmenu', e => {
+    if(e.originalEvent) e.originalEvent.preventDefault();
+    /* 通常モード（色削除）は各ポリゴンの contextmenu で処理済み */
+});
+
+/* =====================================================
    地図クリックハンドラ（星・テキスト・楕円）
    ===================================================== */
 map.on('click', e => {
-    /* フリーテキストモード */
     if(textMode){
         const inputText = prompt("テキストを入力してください", "テキスト");
         if(inputText === null || inputText.trim() === "") return;
@@ -1057,8 +1070,20 @@ function changeAllLabelSize(){
 }
 
 /* =====================================================
-   ラベル表示切替
+   ラベル表示モード切替（市区町村名 ↔ 地域コード）
    ===================================================== */
+function toggleLabelDisplayMode(){
+    labelDisplayMode = labelDisplayMode === "name" ? "code" : "name";
+    const btn = document.getElementById("labelDisplayModeBtn");
+    if(btn) btn.textContent = labelDisplayMode === "name" ? "地域コード表示" : "市区町村名表示";
+    /* 全マーカーを更新 */
+    Object.keys(labelMarkers).forEach(key => {
+        const marker = labelMarkers[key];
+        if(marker) marker.setIcon(makeLabelIcon(key, labelNameCache[key] || ""));
+    });
+}
+
+
 function toggleLabels(){
     const prev = labelVisible;
     labelVisible = !labelVisible;
@@ -1301,6 +1326,9 @@ function toggleEllipseMode(forceValue = null){
     } else {
         deselectEllipse();
     }
+    /* ★ 楕円モード終了時にハンドルペーンのpointerEventsを無効化 */
+    map.getPane("ellipsePane").style.pointerEvents       = ellipseMode ? "auto" : "none";
+    map.getPane("ellipseHandlePane").style.pointerEvents = ellipseMode ? "auto" : "none";
     showModeBadge(_activeMode());
 }
 
