@@ -1075,7 +1075,7 @@ function changeAllLabelSize(){
 function toggleLabelDisplayMode(){
     labelDisplayMode = labelDisplayMode === "name" ? "code" : "name";
     const btn = document.getElementById("labelDisplayModeBtn");
-    if(btn) btn.textContent = labelDisplayMode === "name" ? "地域コード表示" : "市区町村名表示";
+    if(btn) btn.textContent = labelDisplayMode === "name" ? "市区町村名→地域コード" : "地域コード→市区町村名";
     /* 全マーカーを更新 */
     Object.keys(labelMarkers).forEach(key => {
         const marker = labelMarkers[key];
