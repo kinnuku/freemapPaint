@@ -416,8 +416,12 @@ button.active {
     z-index: 9990;
     opacity: 0;
     transition: opacity 0.25s;
+    pointer-events: none;       /* ★ 閉じているときはタップを地図に通す */
 }
-#drawerOverlay.open { opacity: 1; }
+#drawerOverlay.open {
+    opacity: 1;
+    pointer-events: auto;       /* ★ 開いているときだけタップを受ける */
+}
 
 @media (max-width: 768px) {
     body {
