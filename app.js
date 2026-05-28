@@ -156,6 +156,11 @@ let csvCircleObjects = [];
 
 let cityHallData = {};
 
+/* ★ 市区町村コード(N03_007) -> [layer, ...] のマップ
+   CSV色塗り読込時に対象市区町村のレイヤを取得するために保持。
+   render() のたびに rebuild される。 */
+let cityCodeToLayers = new Map();
+
 
 /* ★ 楕円データ */
 let ellipseData      = JSON.parse(localStorage.getItem("ellipses") || "[]");
@@ -359,6 +364,7 @@ async function render(){
     borderLayer.clearLayers();
     used.clear();
     renderedKeys.clear();
+    cityCodeToLayers.clear();
 
     const prevLabelMarkers = { ...labelMarkers };
     labelMarkers = {};
@@ -424,16 +430,31 @@ async function render(){
                     if(!name) return;
                     renderedKeys.add(key);
 
+                    /* ★ 市区町村コード→レイヤ参照を登録（飛び地で複数になり得るので配列） */
+                    if(!cityCodeToLayers.has(key)) cityCodeToLayers.set(key, []);
+                    cityCodeToLayers.get(key).push(layer);
+
                     layer.on('click', () => {
                         if (starMode || circleMode || textMode || ellipseMode) return;
                         const prev = colorData[key] || null;
                         const next = currentColor;
-                        if(prev === next) return;
+                        /* ★ バグ対策: 同色を再クリックすると色を削除（トグル動作）
+                           これで右クリックが使えない環境（タッチデバイス等）でも
+                           左クリックだけで色の付け外しができる。 */
+                        if(prev === next){
+                            delete colorData[key]; saveColors();
+                            setCityFillColor(key, "#fff");
+                            pushHistory(`色削除`,
+                                () => { colorData[key]=prev; saveColors(); setCityFillColor(key, prev); },
+                                () => { delete colorData[key]; saveColors(); setCityFillColor(key, "#fff"); }
+                            );
+                            return;
+                        }
                         colorData[key] = next; saveColors();
-                        layer.setStyle({ fillColor: next });
+                        setCityFillColor(key, next);
                         pushHistory(`色塗り`,
-                            () => { if(prev===null) delete colorData[key]; else colorData[key]=prev; saveColors(); layer.setStyle({fillColor:prev||"#fff"}); },
-                            () => { colorData[key]=next; saveColors(); layer.setStyle({fillColor:next}); }
+                            () => { if(prev===null) delete colorData[key]; else colorData[key]=prev; saveColors(); setCityFillColor(key, prev||"#fff"); },
+                            () => { colorData[key]=next; saveColors(); setCityFillColor(key, next); }
                         );
                     });
                     layer.on('contextmenu', e => {
@@ -441,10 +462,10 @@ async function render(){
                         const prev = colorData[key] || null;
                         if(!prev) return;
                         delete colorData[key]; saveColors();
-                        layer.setStyle({ fillColor: "#fff" });
+                        setCityFillColor(key, "#fff");
                         pushHistory(`色削除`,
-                            () => { colorData[key]=prev; saveColors(); layer.setStyle({fillColor:prev}); },
-                            () => { delete colorData[key]; saveColors(); layer.setStyle({fillColor:"#fff"}); }
+                            () => { colorData[key]=prev; saveColors(); setCityFillColor(key, prev); },
+                            () => { delete colorData[key]; saveColors(); setCityFillColor(key, "#fff"); }
                         );
                     });
                     if(labelVisible && !used.has(key)){
@@ -1180,6 +1201,109 @@ function parseFontSize(value){
     const n = Number(t);
     if(!Number.isInteger(n) || n < 1 || n > 300) return null;
     return n;
+}
+
+/* =====================================================
+   市区町村レイヤーの塗り色を更新するヘルパー
+   飛び地等で同一コードに複数 layer がある場合に対応。
+   ===================================================== */
+function setCityFillColor(key, color){
+    const layers = cityCodeToLayers.get(key);
+    if(!layers) return;
+    layers.forEach(l => l.setStyle({ fillColor: color }));
+}
+
+/* =====================================================
+   CSV色塗り読込
+   形式: 1行目はヘッダー(任意)、以降は「地域コード,カラーコード」
+   例:
+     地域コード,カラーコード
+     13101,#FF0000
+     13102,#00FF00
+   ===================================================== */
+function loadCSVColors(files){
+    if(!files || files.length === 0) return;
+    const reader = new FileReader();
+    reader.onload = e => parseCSVColors(e.target.result);
+    reader.readAsText(files[0], "UTF-8");
+    /* ★ 同じファイルを連続読込できるように value をクリア */
+    const input = document.getElementById('csvColorInput');
+    if(input) input.value = '';
+}
+
+function parseCSVColors(text){
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l !== "");
+    if(lines.length === 0){ alert("CSVが空です。"); return; }
+
+    /* ヘッダー判定: 1行目をパースして1列目が市区町村コード(数値)でなければヘッダーとみなしスキップ */
+    let dataLines = lines;
+    const firstCols = lines[0].split(",").map(c => c.trim());
+    if(!/^\d{5}$/.test(firstCols[0])){
+        dataLines = lines.slice(1);
+    }
+
+    /* 適用前の colorData を保存（undo 用） */
+    const prevMap = new Map();
+    const nextMap = new Map();
+    const notRenderedCodes = [];
+    let appliedCount = 0;
+    let invalidCount = 0;
+
+    dataLines.forEach(line => {
+        const cols = line.split(",").map(c => c.trim());
+        if(cols.length < 2) return;
+        const code = cols[0];
+        let color = cols[1];
+        if(!/^\d{5}$/.test(code)){ invalidCount++; return; }
+        /* カラーコード正規化: #付きで6桁(または3桁)16進 */
+        if(color && color[0] !== '#') color = '#' + color;
+        if(!/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(color)){ invalidCount++; return; }
+
+        if(!cityCodeToLayers.has(code)){
+            /* 未描画(都道府県未選択など) → 後で表示されたとき適用されるよう
+               colorData に書き込んでおく */
+            notRenderedCodes.push(code);
+        }
+
+        if(!prevMap.has(code)) prevMap.set(code, colorData[code] || null);
+        nextMap.set(code, color);
+        colorData[code] = color;
+        setCityFillColor(code, color);
+        appliedCount++;
+    });
+
+    if(appliedCount === 0){
+        alert("有効なデータがありませんでした。\n形式: 地域コード(5桁),カラーコード(#RRGGBB)");
+        return;
+    }
+
+    saveColors();
+
+    pushHistory(`CSV色塗り読込`,
+        () => {
+            prevMap.forEach((prev, code) => {
+                if(prev === null) delete colorData[code]; else colorData[code] = prev;
+                setCityFillColor(code, prev || "#fff");
+            });
+            saveColors();
+        },
+        () => {
+            nextMap.forEach((next, code) => {
+                colorData[code] = next;
+                setCityFillColor(code, next);
+            });
+            saveColors();
+        }
+    );
+
+    /* 結果サマリ */
+    let msg = `${appliedCount}件に色を適用しました。`;
+    if(invalidCount > 0) msg += `\n${invalidCount}件は形式エラーでスキップしました。`;
+    if(notRenderedCodes.length > 0){
+        msg += `\n${notRenderedCodes.length}件は現在表示されていない都道府県のため、`
+             + `該当都道府県を表示すると色が反映されます。`;
+    }
+    alert(msg);
 }
 
 /* =====================================================
