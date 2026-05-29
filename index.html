@@ -37,7 +37,7 @@
   <div class="section-card">
     <div class="section-title">カラー</div>
     <div class="color-row">
-      <div class="color-btn" data-color="#FCF8F8" style="background:#FCF8F8" onclick="setColor('#FCF8F8')" title="ペールレッド"></div>
+      <div class="color-btn" data-color="#FDE0E0" style="background:#FDE0E0" onclick="setColor('#FDE0E0')" title="ペールレッド"></div>
       <div class="color-btn" data-color="#EAEBFD" style="background:#EAEBFD" onclick="setColor('#EAEBFD')" title="ペールインディゴ"></div>
       <div class="color-btn" data-color="#EEFDE0" style="background:#EEFDE0" onclick="setColor('#EEFDE0')" title="ペールライム"></div>
       <div class="color-btn" data-color="#FDFBE0" style="background:#FDFBE0" onclick="setColor('#FDFBE0')" title="ペールイエロー"></div>
@@ -52,8 +52,8 @@
       </div>
     </div>
     <div class="color-preview">
-      <div class="color-preview-swatch" id="colorSwatch" style="background:#FCF8F8"></div>
-      <span class="color-preview-label" id="colorLabel">#FCF8F8</span>
+      <div class="color-preview-swatch" id="colorSwatch" style="background:#FDE0E0"></div>
+      <span class="color-preview-label" id="colorLabel">#FDE0E0</span>
     </div>
   </div>
 
@@ -166,7 +166,7 @@
     <div class="section-title">CSV</div>
     <div class="btn-col">
       <div class="btn-item">
-        <button onclick="document.getElementById('csvInput').click()">CSV円読込</button>
+        <button onclick="document.getElementById('csvInput').click()">CSV読込</button>
         <span class="help">？</span>
         <div class="tooltip">形式：緯度,経度,人数,フラグ</div>
       </div>
@@ -178,20 +178,10 @@
       <div class="btn-item">
         <button onclick="clearAllCsvCircles()">CSV円一括削除</button>
         <span class="help">？</span>
-        <div class="tooltip">CSV円読込で追加した全ての円を削除します</div>
-      </div>
-      <div class="btn-item">
-        <button onclick="document.getElementById('csvColorInput').click()">CSV色塗り読込</button>
-        <span class="help">？</span>
-        <div class="tooltip">
-          ヘッダー：地域コード,カラーコード<br>
-          例：13101,#FF0000<br>
-          読み込み後も左クリックで上書き、右クリックで削除できます
-        </div>
+        <div class="tooltip">CSV読込で追加した全ての円を削除します</div>
       </div>
     </div>
     <input type="file" id="csvInput" accept=".csv" style="display:none" onchange="loadCSV(this.files)">
-    <input type="file" id="csvColorInput" accept=".csv" style="display:none" onchange="loadCSVColors(this.files)">
   </div>
 
   <!-- 操作 -->
