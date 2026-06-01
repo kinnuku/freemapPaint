@@ -182,11 +182,11 @@ const saveLabelVisible = () => localStorage.setItem("labelVisible", JSON.stringi
    モードバッジ表示
    ===================================================== */
 const MODE_LABELS = {
-    star:    '★ スターモード',
-    circle:  '◎ サークルモード',
+    star:    '★ 星モード',
+    circle:  '◎ 円モード',
     ellipse: '⬭ 楕円モード',
     text:    'T  テキストモード',
-    csv:     '✏️ CSV編集モード',
+    csv:     '✏️ CSV円編集モード',
 };
 
 function showModeBadge(mode){
