@@ -124,7 +124,7 @@ let circleLayer    = L.layerGroup().addTo(map);
 let csvCircleLayer = L.layerGroup().addTo(map);
 let textLayer      = L.layerGroup().addTo(map);
 
-let currentColor = "#e60000";
+let currentColor = "#FDECEC";
 
 let colorData      = JSON.parse(localStorage.getItem("colors")       || "{}");
 let sizeData       = JSON.parse(localStorage.getItem("sizes")        || "{}");
