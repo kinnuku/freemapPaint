@@ -1191,6 +1191,35 @@ function resetAll(){
     circleLayer.clearLayers();
     location.reload();
 }
+
+/* =====================================================
+   色塗り済み市区町村をCSVエクスポート
+   出力形式: 地域コード,カラーコード
+   ===================================================== */
+function exportColoredCitiesCSV(){
+    const entries = Object.entries(colorData);
+    if(entries.length === 0){
+        alert("色が塗られた市区町村がありません。");
+        return;
+    }
+
+    /* ヘッダー + データ行 */
+    const lines = ["地域コード,カラーコード"];
+    entries
+        .sort((a, b) => a[0].localeCompare(b[0]))   /* 地域コード順にソート */
+        .forEach(([code, color]) => {
+            lines.push(`${code},${color}`);
+        });
+
+    const csv  = lines.join("\r\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }); /* BOM付きUTF-8 */
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = "colored_cities.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+}
 function escapeHtml(v){
     return String(v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 }
